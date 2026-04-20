@@ -8,7 +8,7 @@ interface CodeEditorProps {
   readOnly?: boolean
 }
 
-// Map our language names to Monaco's language IDs
+
 const MONACO_LANG: Record<Language, string> = {
   javascript: 'javascript',
   python: 'python',

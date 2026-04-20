@@ -9,13 +9,13 @@ const ProblemPanel = ({ problem }: ProblemPanelProps) => {
   return (
     <div className="h-full overflow-y-auto p-4 space-y-5">
 
-      {/* Title + difficulty */}
+     
       <div className="flex items-start justify-between gap-3">
         <h2 className="text-lg font-bold text-gray-100">{problem.title}</h2>
         <DifficultyBadge difficulty={problem.difficulty} />
       </div>
 
-      {/* Tags */}
+      
       {problem.tags.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {problem.tags.map((tag) => (
@@ -26,14 +26,14 @@ const ProblemPanel = ({ problem }: ProblemPanelProps) => {
         </div>
       )}
 
-      {/* Description */}
+      
       <div>
         <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">
           {problem.description}
         </p>
       </div>
 
-      {/* Constraints */}
+    
       {problem.constraints && (
         <div>
           <h3 className="text-sm font-semibold text-gray-200 mb-2">Constraints</h3>
@@ -43,7 +43,7 @@ const ProblemPanel = ({ problem }: ProblemPanelProps) => {
         </div>
       )}
 
-      {/* Examples */}
+      
       {problem.examples.length > 0 && (
         <div>
           <h3 className="text-sm font-semibold text-gray-200 mb-3">Examples</h3>

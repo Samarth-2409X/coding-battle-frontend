@@ -6,7 +6,7 @@ interface PlayerCardProps {
 }
 
 const PlayerCard = ({ player, isMe }: PlayerCardProps) => {
-  // Status color and label
+  
   const statusMap: Record<string, { color: string; label: string }> = {
     pending:      { color: 'text-gray-400',   label: 'Coding...' },
     accepted:     { color: 'text-green-400',  label: 'Solved ✓' },
@@ -23,7 +23,7 @@ const PlayerCard = ({ player, isMe }: PlayerCardProps) => {
         : 'bg-gray-800/50 border-gray-700'
       }`}
     >
-      {/* Avatar */}
+      
       <div className={`w-8 h-8 rounded-full flex items-center justify-center
         font-bold text-sm text-white
         ${isMe ? 'bg-indigo-600' : 'bg-gray-600'}`}
@@ -31,7 +31,7 @@ const PlayerCard = ({ player, isMe }: PlayerCardProps) => {
         {player.username.charAt(0).toUpperCase()}
       </div>
 
-      {/* Name + status */}
+      
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-100 truncate">
           {player.username}
@@ -40,7 +40,7 @@ const PlayerCard = ({ player, isMe }: PlayerCardProps) => {
         <p className={`text-xs ${status.color}`}>{status.label}</p>
       </div>
 
-      {/* Ready badge when waiting */}
+      
       {player.isReady && player.submissionStatus === 'pending' && (
         <span className="text-xs bg-green-900/50 text-green-400 px-2 py-0.5 rounded-full">
           Ready

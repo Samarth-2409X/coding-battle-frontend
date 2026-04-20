@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 
 interface TimerProps {
-  startedAt: string       // ISO date string when battle started
-  timeLimit: number       // in minutes
+  startedAt: string      
+  timeLimit: number       
   onExpire?: () => void
 }
 
@@ -33,7 +33,7 @@ const Timer = ({ startedAt, timeLimit, onExpire }: TimerProps) => {
   const minutes = Math.floor(secondsLeft / 60)
   const seconds = secondsLeft % 60
 
-  // Turn red when less than 2 minutes left
+  
   const isLow = secondsLeft < 120
   const isVeryLow = secondsLeft < 30
 
