@@ -217,9 +217,9 @@ The frontend connects to Socket.io with the JWT token on authentication.
 ## Scripts
 
 ```bash
-npm run dev       # Start development server
-npm run build     # Build for production
-npm run preview   # Preview production build
+npm run dev      
+npm run build     
+npm run preview   
 ```
 
 ---
