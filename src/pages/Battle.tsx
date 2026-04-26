@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { connectSocket, disconnectSocket } from '../socket/socket'
+import { connectSocket } from '../socket/socket'
 import useAuthStore from '../store/authStore'
 import useBattleStore from '../store/battleStore'
 import api from '../api/axios'
@@ -35,6 +35,7 @@ const Battle = () => {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [isReady, setIsReady] = useState(false)
+  const [roomError, setRoomError] = useState('')
 
   useEffect(() => {
     if (!token || !roomCode) return
@@ -49,10 +50,10 @@ const Battle = () => {
         setRoom(fetchedRoom)
         if (fetchedRoom.problem) {
           setProblem(fetchedRoom.problem)
-          setMyCode(fetchedRoom.problem.starterCode?.javascript || '')
+          setMyCode((fetchedRoom.problem as any).starterCode?.javascript || '')
         }
-      } catch {
-        navigate('/battle/create')
+      } catch (err: any) {
+        setRoomError(err.response?.data?.message || 'Room not found')
       } finally {
         setLoading(false)
       }
@@ -60,33 +61,49 @@ const Battle = () => {
 
     fetchRoom()
 
-  
-    socket.emit('JOIN_ROOM', { roomCode })
+    
+    const joinRoom = () => {
+      console.log('🚪 Emitting JOIN_ROOM:', roomCode)
+      socket.emit('JOIN_ROOM', { roomCode })
+    }
+
+    if (socket.connected) {
+      
+      joinRoom()
+    } else {
+      
+      socket.once('connect', joinRoom)
+    }
 
     
+
     socket.on('ROOM_UPDATED', ({ room }) => {
       setRoom(room)
     })
 
     socket.on('PLAYER_JOINED', () => {
-      
-      api.get(`/api/battles/${roomCode}`).then((res) => setRoom(res.data.data.room))
+      api.get(`/api/battles/${roomCode}`)
+        .then((res) => setRoom(res.data.data.room))
+        .catch(console.error)
     })
 
     socket.on('PLAYER_LEFT', () => {
-      api.get(`/api/battles/${roomCode}`).then((res) => setRoom(res.data.data.room))
+      api.get(`/api/battles/${roomCode}`)
+        .then((res) => setRoom(res.data.data.room))
+        .catch(console.error)
     })
 
     socket.on('COUNTDOWN', ({ seconds }: { seconds: number }) => {
       setCountdown(seconds)
     })
 
-    socket.on('BATTLE_STARTED', ({ problem, timeLimit }) => {
+    socket.on('BATTLE_STARTED', ({ problem }: any) => {
       setProblem(problem)
       setMyCode(problem.starterCode?.javascript || '')
       setCountdown(null)
-      
-      api.get(`/api/battles/${roomCode}`).then((res) => setRoom(res.data.data.room))
+      api.get(`/api/battles/${roomCode}`)
+        .then((res) => setRoom(res.data.data.room))
+        .catch(console.error)
     })
 
     socket.on('SUBMISSION_RESULT', (result) => {
@@ -104,6 +121,8 @@ const Battle = () => {
 
     
     return () => {
+      
+      socket.off('connect', joinRoom)
       socket.emit('LEAVE_ROOM', { roomCode })
       socket.off('ROOM_UPDATED')
       socket.off('PLAYER_JOINED')
@@ -132,7 +151,7 @@ const Battle = () => {
   const handleLanguageChange = (lang: Language) => {
     setMyLanguage(lang)
     if (problem) {
-      setMyCode(problem.starterCode[lang] || '')
+      setMyCode((problem.starterCode as any)[lang] || '')
     }
   }
 
@@ -148,9 +167,30 @@ const Battle = () => {
     })
   }
 
+  
   if (loading) return <Loader text="Joining battle room..." />
 
- 
+  
+  if (roomError || !room) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="card text-center max-w-sm w-full space-y-4">
+          <p className="text-4xl">😕</p>
+          <h2 className="text-lg font-semibold text-white">
+            {roomError || 'Room not found'}
+          </h2>
+          <p className="text-gray-400 text-sm">
+            This room may have expired or the code is incorrect.
+          </p>
+          <Button fullWidth onClick={() => navigate('/battle/create')}>
+            Go Back
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  
   if (winner) {
     const iWon = winner.winnerId === user?._id
     return (
@@ -166,9 +206,7 @@ const Battle = () => {
               : `${winner.winnerUsername} solved it first.`}
           </p>
           <div className="flex gap-3 justify-center pt-2">
-            <Button onClick={() => navigate('/battle/create')}>
-              Play Again
-            </Button>
+            <Button onClick={() => navigate('/battle/create')}>Play Again</Button>
             <Button variant="secondary" onClick={() => navigate('/leaderboard')}>
               Leaderboard
             </Button>
@@ -179,12 +217,11 @@ const Battle = () => {
   }
 
   
-  if (room?.status === 'waiting' || room?.status === 'countdown') {
+  if (room.status === 'waiting' || room.status === 'countdown') {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="card max-w-md w-full space-y-6">
 
-          
           <div className="text-center">
             <p className="text-sm text-gray-400 mb-1">Room Code</p>
             <p className="text-4xl font-black font-mono text-indigo-400 tracking-widest">
@@ -193,7 +230,6 @@ const Battle = () => {
             <p className="text-xs text-gray-500 mt-1">Share this with your opponent</p>
           </div>
 
-         
           <div className="space-y-2">
             {room.players.map((player) => (
               <PlayerCard
@@ -204,13 +240,14 @@ const Battle = () => {
             ))}
             {room.players.length < 2 && (
               <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-dashed border-gray-700 text-gray-600 text-sm">
-                <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center text-gray-700">?</div>
+                <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center text-gray-700">
+                  ?
+                </div>
                 Waiting for opponent...
               </div>
             )}
           </div>
 
-          
           {countdown !== null && (
             <div className="text-center">
               <p className="text-gray-400 text-sm mb-1">Battle starting in</p>
@@ -218,7 +255,6 @@ const Battle = () => {
             </div>
           )}
 
-         
           {room.status === 'waiting' && room.players.length >= 2 && !isReady && (
             <Button fullWidth onClick={handleReady}>
               I'm Ready!
@@ -235,16 +271,13 @@ const Battle = () => {
     )
   }
 
-  
+ 
   return (
     <div className="h-[calc(100vh-64px)] flex flex-col">
 
-      
       <div className="flex items-center justify-between px-4 py-2 bg-gray-900 border-b border-gray-800">
-
-        
         <div className="flex items-center gap-3">
-          {room?.players.map((player) => (
+          {room.players.map((player) => (
             <PlayerCard
               key={player.userId}
               player={player}
@@ -253,15 +286,10 @@ const Battle = () => {
           ))}
         </div>
 
-        
-        {room?.startedAt && (
-          <Timer
-            startedAt={room.startedAt}
-            timeLimit={room.timeLimit}
-          />
+        {room.startedAt && (
+          <Timer startedAt={room.startedAt} timeLimit={room.timeLimit} />
         )}
 
-        
         <div className="flex items-center gap-2">
           <select
             value={myLanguage}
@@ -272,40 +300,33 @@ const Battle = () => {
               <option key={l} value={l}>{l}</option>
             ))}
           </select>
-
           <Button onClick={handleSubmit} loading={submitting} variant="primary">
             Submit
           </Button>
         </div>
       </div>
 
-      
       <div className="flex-1 flex overflow-hidden">
-
-       
         <div className="w-2/5 border-r border-gray-800">
-          {problem && <ProblemPanel problem={problem} />}
+          {problem
+            ? <ProblemPanel problem={problem} />
+            : <div className="flex items-center justify-center h-full text-gray-500 text-sm">Loading problem...</div>
+          }
         </div>
 
-        
         <div className="flex-1 flex flex-col">
           <div className="flex-1 p-3">
-            {problem && (
-              <CodeEditor
-                code={myCode}
-                language={myLanguage as Language}
-                onChange={handleCodeChange}
-              />
-            )}
+            {problem
+              ? <CodeEditor code={myCode} language={myLanguage as Language} onChange={handleCodeChange} />
+              : <div className="h-full flex items-center justify-center text-gray-500 text-sm">Waiting for problem...</div>
+            }
           </div>
 
-          
           {submissionResult && submissionResult.userId === user?._id && (
             <div className={`border-t px-4 py-3 flex items-center gap-4
               ${submissionResult.status === 'accepted'
                 ? 'bg-green-900/20 border-green-800'
-                : 'bg-red-900/20 border-red-800'
-              }`}
+                : 'bg-red-900/20 border-red-800'}`}
             >
               <span className={`font-semibold text-sm
                 ${submissionResult.status === 'accepted' ? 'text-green-400' : 'text-red-400'}`}
