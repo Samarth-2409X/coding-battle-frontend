@@ -70,7 +70,7 @@ coding-battle-frontend/
 │       ├── Leaderboard.tsx               # Top players by rating
 │       └── Profile.tsx                   # User stats + submission history
 │
-├── .env                                  # Environment variables
+├── .env                                  
 ├── index.html
 ├── tailwind.config.js
 ├── tsconfig.json
